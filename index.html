@@ -4139,6 +4139,80 @@ var r0=sync();if(r0.add.length||r0.back.length){try{window.save()}catch(e){}note
 try{view()}catch(e){}
 }catch(e){if(window.console)console.error(e)}})();
 </script>
+<script>
+(function(){try{
+/* ١) كشف إضافي ضمن الكادر الطبي بنفس التنسيق */
+DEFMC+="\nرشا رفعت خميس شبانه|صيدلي|13\nولاء أحمد أبو المجد|صيدلي|13\nرشا عيسوى عيسوى سليم|طبيب أسنان|13\nبسنت جلال مصيلحي السعدني|طبيب أسنان|13\nمني كامل محمد العشماوى|أخصائي تمريض|13";
+MCGL[13]="كشف إضافي (صيادلة وأسنان وتمريض)";
+/* ٢) اللي وظيفته زميل ما ياخدش كادر */
+var ZR=/زميل/;
+function ttl(n){var k=fz(norm(n)),b=null;(S.items||[]).forEach(function(i){if(i.kind!=="mov"||i.type!=="استلام عمل – تغيير مسمى وظيفي"||!i.note||fz(norm(i.name))!==k)return;if(!b||i.date>b.date||(i.date===b.date&&String(i.id)>String(b.id)))b=i});return b?String(b.note):""}
+function isZam(n,j){var t=ttl(n);if(t)return ZR.test(t);var E=(S.emps||{})[n];if(E&&E.job&&ZR.test(E.job))return true;return ZR.test(j||"")}
+var _e=mcEff;mcEff=function(){var E=_e.apply(this,arguments);if(!E)return E;var M=S.mc=S.mc||{},D=M.del||{},z=[];
+E.live=E.live.filter(function(x){if(D[mcK(x.n)])return false;if(isZam(x.n,x.j)){z.push(x);return false}return true});
+E.gone=E.gone.filter(function(x){return!D[mcK(x.n)]});E.pend=E.pend.filter(function(i){return!D[mcK(i.name)]&&!isZam(i.name,"")});E.zam=z;return E};
+var _cs=cadSheet;cadSheet=function(){var sw=[],all=[S.cfg].concat((S.cfg&&S.cfg.gs)||[]);
+all.forEach(function(C){if(C&&C.cad&&C.roster){sw.push([C,C.roster]);C.roster=lines(C.roster).filter(function(l){var p=l.split("|");return!isZam(norm(p[0]),norm(p[1]||""))}).join("\n")}});
+try{return _cs.apply(this,arguments)}finally{sw.forEach(function(s){s[0].roster=s[1]})}};
+/* ٣) حذف اسم من أي كشف بالبحث */
+var ORC=DEFCOM.slice();
+function applyCom(){var D=S.dcom||{};DEFCOM.length=0;ORC.forEach(function(n){if(!D[fz(norm(n))])DEFCOM.push(n)})}
+function srcs(){var C=S.cfg||{},o=[];
+o.push({id:"r0",t:C.gname||"إدارة الشئون المالية والإدارية",get:function(){return C.roster||""},set:function(v){C.roster=v}});
+(C.gs||[]).forEach(function(g,i){o.push({id:"g"+i,t:g.gname||"إدارة",get:function(){return g.roster||""},set:function(v){g.roster=v}})});
+[["hosp","إداريو المستشفى"],["wkr","العمال"],["tmpr","العمالة المؤقتة"]].forEach(function(p){o.push({id:p[0],t:p[1],get:function(){return S[p[0]]||""},set:function(v){S[p[0]]=v}})});return o}
+function hits(q){var qq=fz(norm(q)),o=[];if(!qq)return o;
+srcs().forEach(function(s){lines(s.get()).forEach(function(l){var n=nmOf(l);if(fz(n).indexOf(qq)>-1)o.push({s:s.id,t:s.t,n:n})})});
+try{mcOrdered().forEach(function(g){g.a.forEach(function(x){if(fz(norm(x.n)).indexOf(qq)>-1)o.push({s:"mc",t:"الكادر الطبي – "+g.j,n:x.n})})})}catch(e){}
+DEFCOM.forEach(function(n){if(fz(norm(n)).indexOf(qq)>-1)o.push({s:"com",t:"إدارة القومسيون الطبي",n:n})});return o}
+function rows(q){if(!norm(q))return'<div class="sub">اكتب جزء من الاسم يظهرلك في أي كشف موجود.</div>';var h=hits(q);if(!h.length)return'<div class="empty">مفيش نتيجة</div>';
+var cnt={};h.forEach(function(x){var k=fz(norm(x.n));cnt[k]=(cnt[k]||0)+1});
+return h.map(function(x){return'<div class="it" style="padding:6px 10px"><b>'+esc(x.n)+'</b><small dir="rtl" style="display:block">'+esc(x.t)+'</small><div class="bt"><button class="d" data-a="dlx" data-s="'+esc(x.s)+'" data-n="'+esc(x.n)+'">حذف من هذا الكشف</button>'+(cnt[fz(norm(x.n))]>1?'<button class="d" data-a="dla" data-n="'+esc(x.n)+'">حذف من كل الكشوف ('+hn(cnt[fz(norm(x.n))])+')</button>':'')+'</div></div>'}).join("")}
+function delOne(s,n){var k=fz(norm(n));
+if(s==="mc"){var M=S.mc=S.mc||{};M.del=M.del||{};M.del[mcK(n)]=n;M.add=(M.add||[]).filter(function(x){return mcK(x.n)!==mcK(n)})}
+else if(s==="com"){S.dcom=S.dcom||{};S.dcom[k]=n;applyCom()}
+else srcs().forEach(function(x){if(x.id===s)x.set(lines(x.get()).filter(function(l){return fz(nmOf(l))!==k}).join("\n"))})}
+window.delCard=function(){applyCom();var M=(S.mc||{}).del||{},C2=S.dcom||{},bk=[];
+Object.keys(M).forEach(function(k){bk.push(['mc',k,M[k]])});Object.keys(C2).forEach(function(k){bk.push(['com',k,C2[k]])});
+return'<div class="card"><h2>🗑️ حذف اسم من الكشوف</h2><input id="dlq" placeholder="ابحث بالاسم المراد حذفه" autocomplete="off" value="'+esc(window.DLQ||"")+'"><div id="dlr">'+rows(window.DLQ||"")+'</div><div class="sub" style="margin-top:6px">يشمل الكشوف الشهرية والسنوية: كل الإدارات والعمال والمؤقتين والكادر الطبي والقومسيون. زر التراجع فوق يرجّع آخر حذف.</div>'+
+(bk.length?'<details style="margin-top:8px"><summary style="cursor:pointer;font-weight:700">محذوفين من الكادر والقومسيون ('+hn(bk.length)+')</summary>'+bk.map(function(b){return'<div class="it" style="padding:6px 10px"><b>'+esc(b[2])+'</b> <button class="g" data-a="dlr" data-s="'+b[0]+'" data-k="'+esc(b[1])+'">استرجاع</button></div>'}).join("")+'</details>':'')+'</div>'};
+document.addEventListener("input",function(e){if(e.target&&e.target.id==="dlq"){window.DLQ=e.target.value;var r=document.getElementById("dlr");if(r)r.innerHTML=rows(window.DLQ)}});
+document.addEventListener("click",function(e){var t=e.target.closest&&e.target.closest("[data-a=dlx],[data-a=dla],[data-a=dlr]");if(!t)return;e.stopPropagation();e.preventDefault();var a=t.dataset.a,n=t.dataset.n;
+if(a==="dlr"){if(t.dataset.s==="mc")delete S.mc.del[t.dataset.k];else delete S.dcom[t.dataset.k];applyCom();save();view();mcToast("اتسترجع");return}
+if(a==="dlx")delOne(t.dataset.s,n);
+else{var k=fz(norm(n));hits(n).forEach(function(x){if(fz(norm(x.n))===k)delOne(x.s,x.n)})}
+save();view();mcToast("اتحذف: "+n)},true);
+var _rc=repCard;repCard=function(){return _rc.apply(this,arguments)+delCard()};
+var _yv=window.yrView;window.yrView=function(){return _yv.apply(this,arguments)+delCard()};
+var _mv=mcView;mcView=function(){var h=_mv.apply(this,arguments),E=mcEff(),z=E.zam||[];
+if(z.length)h+='<div class="card"><h2>🚫 مستبعدين من الكادر (وظيفتهم زميل)</h2>'+z.map(function(x){return'<div class="it"><b>'+esc(x.n)+'</b><small dir="rtl" style="display:block">'+esc(ttl(x.n)||x.j)+'</small></div>'}).join("")+'</div>';return h};
+applyCom();
+}catch(err){if(window.console)console.error("patch v2",err)}})();
+</script>
+<script>
+(function(){try{
+/* خطاب إجازة استثنائية */
+var RS=["لإصابتي بمرض","لإصابتي بمرض مزمن","لإصابتي بفيروس كورونا المستجد","لمرافقة الزوج/الزوجة المريض","سبب آخر (أكتبه في الخانة اللي تحت)"];
+function xeForm(id){var i=omItem(id);if(!i)return;var E=S.emps[i.name]||{};
+xForm(i,"🌟 خطاب إجازة استثنائية",[{id:"xe_job",l:"الوظيفة",v:E.job||jobOf(i.name)},
+[{id:"xe_s",l:"النوع",t:"s",o:["أنثى","ذكر"],v:E.sex==="سيد"?"ذكر":"أنثى"},{id:"xe_c",l:"مرفق التقرير الطبي؟",t:"s",o:["نعم","لا"],v:"نعم"}],
+{id:"xe_r",l:"سبب الإجازة",t:"s",o:RS,v:RS[0]},
+{id:"xe_o",l:"السبب بكلامك (يُستخدم لو اخترت «سبب آخر»)",v:""},
+[{id:"xe_f",l:"من تاريخ",t:"d",v:i.date},{id:"xe_e",l:"حتى تاريخ",t:"d",v:i.end||""}],
+{id:"xe_x",l:"إضافة في آخر الخطاب (اختياري)",v:""}],
+[["xe1","📄 طباعة الخطاب (لمدير عام الشئون الطبية)"]])}
+function xePrint(id){var i=omItem(id);if(!i)return;var f=xd("xe_f"),e=xd("xe_e");if(!f){document.getElementById("xe_f").focus();return}
+var job=norm(xv("xe_job")),fm=xv("xe_s")!=="ذكر";xSave(i.name,job,fm?"سيدة":"سيد");
+var r=xv("xe_r"),rs=r===RS[4]?norm(xv("xe_o")):r===RS[3]?"لمرافقة "+(fm?"زوجي":"زوجتي")+" المريض"+(fm?"":"ة"):r,
+n=e?days(f,e)+1:0,x=norm(xv("xe_x")),
+body='أرجو من سيادتكم التكرم بالموافقة على منح إجازة استثنائية'+(rs?'، '+esc(rs):'')+' من '+ard(f)+(e?' حتى '+ard(e):'')+(n?' لمدة '+hn(n)+(n>10?' يومًا':' أيام'):'')+(x?'، '+esc(x):'')+(xv("xe_c")==="نعم"?' ومرفق طيه التقرير الطبي':'')+' .';
+uShell(xLetter(i,job,body),xBtn("xe",i.id))}
+var _l=list;list=function(){var h=_l.apply(this,arguments);
+(S.items||[]).forEach(function(i){if(i.kind==="vr"&&i.type==="إجازة استثنائية"){var m='<button class="g" data-a="edt" data-id="'+i.id+'">';h=h.split(m).join('<button class="g" data-a="xe" data-id="'+i.id+'">🌟 الخطاب</button>'+m)}});return h};
+document.addEventListener("click",function(ev){var t=ev.target.closest&&ev.target.closest("[data-a=xe],[data-a=xe1]");if(!t)return;ev.stopPropagation();ev.preventDefault();
+if(t.dataset.a==="xe")xeForm(t.dataset.id);else xePrint(t.dataset.id)},true);
+}catch(err){if(window.console)console.error("patch xe",err)}})();
+</script>
 <script>if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
 </body>
 </html>
